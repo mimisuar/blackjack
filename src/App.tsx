@@ -29,6 +29,8 @@ function App() {
   const [houseTurns, setHouseTurns] = useState(0);
 
   const [winner, setWinner] = useState<HandUser | undefined>(undefined);
+  const [houseWins, setHouseWins] = useState(0);
+  const [playerWins, setPlayerWins] = useState(0);
 
   function newGame() {
     setIsDrawingCard(false);
@@ -66,7 +68,10 @@ function App() {
 
   // code used to see who wons
   useEffect(() => {
-    if (playerState !== "Stayed" || houseState !== "Done" && winner !== undefined) {
+    if (winner !== undefined) {
+      return;
+    }
+    if (playerState !== "Stayed" || houseState !== "Done") {
       return;
     }
     
@@ -76,20 +81,25 @@ function App() {
     if (houseOver) {
       if (playerOver) {
         setWinner("House");
+        setHouseWins(houseWins + 1);
       }
       else {
         setWinner("Player");
+        setPlayerWins(playerWins + 1);
       }
     }
     else {
       if (playerOver) {
         setWinner("House");
+        setHouseWins(houseWins + 1);
       }
       else if (playerTotal <= houseTotal) {
         setWinner("House");
+        setHouseWins(houseWins + 1);
       }
       else {
         setWinner("Player");
+        setPlayerWins(playerWins + 1);
       }
     }
   });
@@ -98,15 +108,17 @@ function App() {
     setIsDrawingCard(true);
     if (houseState === "Drawing") {
       drawForHouse();
+      await delay(500);
     }
 
-    await delay(500);
+    
 
     if (playerState === "Playing") {
       drawForPlayer();
+      await delay(500);
     }
 
-    await delay(500);
+    
     setIsDrawingCard(false);
   }
 
@@ -137,11 +149,15 @@ function App() {
     let nextTotal = getNextTotal(playerTotal, nextCard);
 
     if (nextTotal >= 21) {
-      setPlayerState("Stayed");
+      stay();
     }
 
     setDrawnCards([...drawnCards, nextCard])
     setPlayerTotal(nextTotal);
+
+    if (houseTotal >= 21) {
+      stay();
+    }
   }
 
   function getNextTotal(current: number, card: CardStruct): number {
@@ -155,35 +171,42 @@ function App() {
   const isButtonActive = () => playerState === "Playing" && !isDrawingCard;
 
   return (
-    <div id="playArea">
+    <div id="app">
+      <div id="playArea">
 
-      <h2>{winner !== undefined && `${winner} wins!`}</h2>
+        <h2>{winner !== undefined && `${winner} wins!`}</h2>
 
-      <div className="house">
-        <h2>House</h2>
-        <div className="hand">
-          {houseDrawnCards.map((value, index) => <Card key={index} rank={value.rank} suit={value.suit}/>)}
+        <div className="house">
+          <h2>House</h2>
+          <div className="hand">
+            {houseDrawnCards.map((value, index) => <Card key={index} rank={value.rank} suit={value.suit}/>)}
+          </div>
+
+          <p className="score">total: {houseTotal}</p>
+          <p>{houseState === "Done" && "Done"}</p>
+        </div>
+        
+        <div className="player">
+          <h2>Player</h2>
+          <div className="hand">
+            {drawnCards.map((value, index) => <Card key={index} rank={value.rank} suit={value.suit}/>)}
+          </div>
+          <p className="score">total: {playerTotal}</p>
+          <p>{playerState === "Stayed" && "Stayed"}</p>
+
+          <div>
+            <button onClick={drawCard} disabled={!isButtonActive()}>Hit</button>
+            <button onClick={stay} disabled={!isButtonActive()}>Stay</button>
+          </div>
         </div>
 
-        <p className="score">total: {houseTotal}</p>
-        <p>{houseState === "Done" && "Done"}</p>
+        <button onClick={newGame}>New game</button>
       </div>
-      
-      <div className="player">
-        <h2>Player</h2>
-        <div className="hand">
-          {drawnCards.map((value, index) => <Card key={index} rank={value.rank} suit={value.suit}/>)}
-        </div>
-        <p className="score">total: {playerTotal}</p>
-        <p>{playerState === "Stayed" && "Stayed"}</p>
 
-        <div>
-          <button onClick={drawCard} disabled={!isButtonActive()}>Hit</button>
-          <button onClick={stay} disabled={!isButtonActive()}>Stay</button>
-        </div>
+      <div id="stats">
+        <p>Player wins: {playerWins}</p>
+        <p>House wins: {houseWins}</p>
       </div>
-
-      <button onClick={newGame}>New game</button>
     </div>
   )
 }
